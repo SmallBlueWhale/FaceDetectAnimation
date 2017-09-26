@@ -8,6 +8,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -206,7 +207,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
         if (faceDetectThread == null) {
             faceDetectThread = new FaceDetectThread();
         }
-        valueAnimator.start();
+//        valueAnimator.start();
         faceDetectThread.start();
     }
 
@@ -242,15 +243,24 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void draw() {
-        Canvas mCanvas = mSurfaceHolder.lockCanvas();
+        try {
             synchronized (mSurfaceHolder) {
-                initArcData();
-                if (mCanvas != null) {
-                    //结束之后销毁这个view并且保存
-                    drawArc(mCanvas);
-//                    mSurfaceHolder.unlockCanvasAndPost(mCanvas);
+                canvas = mSurfaceHolder.lockCanvas();
+                if(canvas!=null){
+                    //清屏操作
+                    canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+                    initArcData();
+                    drawArc(canvas);
                 }
             }
+        } catch (Exception e) {
+
+        } finally {
+            if (canvas != null) {
+                //结束之后销毁这个view
+                mSurfaceHolder.unlockCanvasAndPost(canvas);
+            }
+        }
     }
 
     private void drawArc(Canvas canvas) {
