@@ -1,5 +1,6 @@
 package com.hyx.whale.facedetectanimation.FaceDetectView;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -9,8 +10,10 @@ import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.animation.LinearInterpolator;
 
 import com.hyx.whale.facedetectanimation.R;
 
@@ -33,14 +36,16 @@ import com.hyx.whale.facedetectanimation.R;
 public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callback {
     private float radiu = 100;                                  //圆的半径
     private Point circleCenterPoint;                            //圆心位置
-    private Point rectanglePoint1 , rectanglePoint2;                               //三角形的中心点位置
+    private Point rectanglePoint1, rectanglePoint2;             //三角形的中心点位置
+    private Point tanglePoint1, tanglePoint2, tanglePoint3;
+    private Point tanglePoint4, tanglePoint5, tanglePoint6;
     private float rectangleWidth;                               //三角形的边长
 
 
     private int startAngle;                              //起点的角度
     private float nameSize;                                     //名字字体大小
-    private int   drawableID = R.mipmap.ic_launcher;            //动画完成后，显示的图片
-    private int   duration = 500;                               //动画时间
+    private int drawableID = R.mipmap.ic_launcher;            //动画完成后，显示的图片
+    private int duration = 500;                               //动画时间
     /*
     * 圆的部分
     * */
@@ -50,8 +55,11 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
     private int rectLeft, rectTop, rectRight, rectBottom;
     private FaceDetectThread faceDetectThread;
 
-    private Path linePath;
+    private Path rectanglePath1;
+    private Path rectanglePath2;
 
+
+    private ValueAnimator valueAnimator;
     private SurfaceHolder mSurfaceHolder;   //绘图的canvas
     private Canvas canvas;
     private boolean isAnimationEnd;
@@ -119,7 +127,6 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
         circlePaint.setStrokeWidth(2);
 
 
-        linePath = new Path();
         rectanglePaint = new Paint();
         rectanglePaint.setAntiAlias(true);
         rectanglePaint.setStyle(Paint.Style.FILL);
@@ -144,15 +151,54 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
 
     private void initData() {
         faceDetectThread = new FaceDetectThread();
+        rectanglePath1 = new Path();
+        rectanglePath2 = new Path();
         circleCenterPoint = new Point();
         rectanglePoint1 = new Point();
         rectanglePoint2 = new Point();
-        startAngle = 210;
-        circleCenterPoint.x = (int)radiu * 3 / 2;
-        circleCenterPoint.y = (int)radiu * 3 / 2;
+        tanglePoint1 = new Point();
+        tanglePoint2 = new Point();
+        tanglePoint3 = new Point();
+        tanglePoint4 = new Point();
+        tanglePoint5 = new Point();
+        tanglePoint6 = new Point();
+        radiu = 200;
+        circleCenterPoint.x = (int) radiu * 3 / 2;
+        circleCenterPoint.y = (int) radiu * 3 / 2;
         rectF = new RectF(-radiu + circleCenterPoint.x, -radiu + circleCenterPoint.y, radiu + circleCenterPoint.x, radiu + circleCenterPoint.y);
-        caculateRectanglePosition();
 
+        initArcData();
+
+        valueAnimator = ValueAnimator.ofInt(0, 360);
+        valueAnimator.setDuration(1000);
+        valueAnimator.setInterpolator(new LinearInterpolator());
+        valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                startAngle = (int) valueAnimator.getAnimatedValue();
+            }
+        });
+    }
+
+    private void initArcData() {
+        rectanglePoint1 = caculateRectanglePosition(circleCenterPoint, startAngle, radiu);
+        rectanglePoint2 = caculateRectanglePosition(circleCenterPoint, startAngle + 180, radiu);
+
+        tanglePoint1 = caculateRectanglePosition(rectanglePoint1, startAngle + 180, 50);
+        tanglePoint2 = caculateRectanglePosition(rectanglePoint1, startAngle + 120 + 180, 50);
+        tanglePoint3 = caculateRectanglePosition(rectanglePoint1, startAngle + 240 + 180, 50);
+        rectanglePath1.moveTo(tanglePoint1.x, tanglePoint1.y);
+        rectanglePath1.lineTo(tanglePoint2.x, tanglePoint2.y);
+        rectanglePath1.lineTo(tanglePoint3.x, tanglePoint3.y);
+        rectanglePath1.close();
+
+        tanglePoint4 = caculateRectanglePosition(rectanglePoint2, startAngle, 50);
+        tanglePoint5 = caculateRectanglePosition(rectanglePoint2, startAngle + 120, 50);
+        tanglePoint6 = caculateRectanglePosition(rectanglePoint2, startAngle + 240, 50);
+        rectanglePath2.moveTo(tanglePoint4.x, tanglePoint4.y);
+        rectanglePath2.lineTo(tanglePoint5.x, tanglePoint5.y);
+        rectanglePath2.lineTo(tanglePoint6.x, tanglePoint6.y);
+        rectanglePath2.close();
     }
 
     @Override
@@ -160,6 +206,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
         if (faceDetectThread == null) {
             faceDetectThread = new FaceDetectThread();
         }
+        valueAnimator.start();
         faceDetectThread.start();
     }
 
@@ -195,39 +242,37 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void draw() {
-        try {
+        Canvas mCanvas = mSurfaceHolder.lockCanvas();
             synchronized (mSurfaceHolder) {
-                canvas = mSurfaceHolder.lockCanvas();
-                drawArc(canvas);
+                initArcData();
+                if (mCanvas != null) {
+                    //结束之后销毁这个view并且保存
+                    drawArc(mCanvas);
+//                    mSurfaceHolder.unlockCanvasAndPost(mCanvas);
+                }
             }
-        } catch (Exception e) {
-
-        } finally {
-            if (canvas != null) {
-                //结束之后销毁这个view
-                mSurfaceHolder.unlockCanvasAndPost(canvas);
-            }
-        }
     }
 
     private void drawArc(Canvas canvas) {
         canvas.drawArc(rectF, startAngle + 10, 160, false, circlePaint);
         canvas.drawArc(rectF, startAngle + 160 + 30, 160, false, circlePaint);
-        canvas.drawPoint(rectanglePoint1.x , rectanglePoint1.y , rectanglePaint);
-        canvas.drawPoint(rectanglePoint2.x , rectanglePoint2.y  , rectanglePaint);
-//        linePath.moveTo();
+        canvas.drawPoint(rectanglePoint1.x, rectanglePoint1.y, rectanglePaint);
+        canvas.drawPoint(rectanglePoint2.x, rectanglePoint2.y, rectanglePaint);
+        canvas.drawPath(rectanglePath1, circlePaint);
+        canvas.drawPath(rectanglePath2, circlePaint);
+        Log.e("drawArc", "drawArc: " + startAngle);
     }
 
     /*
      * 根据三角形角度以及圆心坐标计算出两个三角形中心坐标
      * */
-    private void caculateRectanglePosition() {
-        rectanglePoint1.x = (int)( circleCenterPoint.x + Math.cos(startAngle * Math.PI  / 180) * radiu);
+    private Point caculateRectanglePosition(Point centerPoint, int angle, float circleRadiu) {
+        Point point = new Point();
+        point.x = (int) (centerPoint.x + Math.cos(angle * Math.PI / 180) * circleRadiu);
         //y坐标和我们平时的坐标反过来
-        rectanglePoint1.y = (int)( circleCenterPoint.y + Math.sin(startAngle * Math.PI  / 180) * radiu);
-        rectanglePoint2.x = (int)( circleCenterPoint.x + Math.cos((startAngle + 180) * Math.PI  / 180) * radiu);
-        //y坐标和我们平时的坐标反过来
-        rectanglePoint2.y = (int)( circleCenterPoint.y + Math.sin((startAngle + 180) * Math.PI  / 180) * radiu);
-
+        point.y = (int) (centerPoint.y + Math.sin(angle * Math.PI / 180) * circleRadiu);
+        return point;
     }
+
+
 }
