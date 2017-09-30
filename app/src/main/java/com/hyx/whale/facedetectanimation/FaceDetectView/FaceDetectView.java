@@ -39,35 +39,49 @@ import java.util.ArrayList;
 * 4.逆时针转动
 * */
 public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callback, Animator.AnimatorListener {
-    private float radiu;                                  //圆的半径
-    private static final float CIRCLERADIU = 200;                                  //圆的半径
+    private float outSideRadiu;                                 //圆的半径
+    private float innerRadiu;
+    private float innerInnerRadiu;
+    private static final float CIRCLERADIU = 200;               //圆固定的半径
     private Point circleCenterPoint;                            //圆心位置
     private Point rectanglePoint1, rectanglePoint2;             //三角形的中心点位置
     private Point tanglePoint1, tanglePoint2, tanglePoint3;
     private Point tanglePoint4, tanglePoint5, tanglePoint6;
-    private float rectangleWidth;                               //三角形的边长
 
 
+    private int outSideCircleStarAngle;                              //起点的角度
+    private int innerCircleStarAngle;                               //起点的角度
     private int startAngle;                              //起点的角度
+    private int outSideGapAngle;                          //外圆间隔
+    private int innerGapAngle;                          //内圆间隔
     private float nameSize;                                     //名字字体大小
     private int drawableID = R.mipmap.ic_launcher;            //动画完成后，显示的图片
     private int duration = 500;                               //动画时间
     /*
     * 圆的部分
     * */
-    private Paint circlePaint;          //圆的画笔
+    private Paint outSideCirclePaint;           //圆的画笔
+    private RectF outSideCircleRectF;           //最外圆矩形
+
+    private Paint innerCirclePaint;             //内圆的画笔
+    private RectF innerCircleRectF;             //内圆矩形
+
+    private Paint innerInnerCirclePaint;        //内内圆的画笔
+    private RectF innerInnerCircleRectF;        //内内圆矩形
+
     private Paint rectanglePaint;       //两个三角形的画笔
-    private RectF rectF;                  //外接圆矩形
-    private int rectLeft, rectTop, rectRight, rectBottom;
+
 
     private Path rectanglePath1;
     private Path rectanglePath2;
 
 
     private ObjectAnimator bcRotateAnimation;
+    private ObjectAnimator innerRotateAnimation;
 
     private AnimatorSet bcAnimatorSet;
     private AnimatorSet bcAnimatorSet1;
+    private AnimatorSet innerAnimatorSet1;
     private ObjectAnimator bcScaleAnimator1;
     private ObjectAnimator bcScaleAnimator2;
     private ObjectAnimator bcScaleAnimator3;
@@ -109,7 +123,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
         if (specMode == MeasureSpec.EXACTLY) {
             height = specSize;
         } else {
-            height = (int) (3 * radiu);
+            height = (int) (3 * outSideRadiu);
             if (specMode == MeasureSpec.AT_MOST) {
                 height = Math.min(height, specSize);
             }
@@ -124,7 +138,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
         if (specMode == MeasureSpec.EXACTLY) {
             width = specSize;
         } else {
-            width = (int) (3 * radiu);
+            width = (int) (3 * outSideRadiu);
             if (specMode == MeasureSpec.AT_MOST) {
                 width = Math.min(width, specSize);
             }
@@ -134,18 +148,30 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
 
     private void initPaint() {
         //圆形画笔
-        circlePaint = new Paint();
-        circlePaint.setAntiAlias(true);
-        circlePaint.setStyle(Paint.Style.STROKE);
-        circlePaint.setColor(Color.BLUE);
-        circlePaint.setStrokeWidth(2);
+        outSideCirclePaint = new Paint();
+        outSideCirclePaint.setAntiAlias(true);
+        outSideCirclePaint.setStyle(Paint.Style.STROKE);
+        outSideCirclePaint.setColor(Color.BLUE);
+        outSideCirclePaint.setStrokeWidth(2);
 
+        innerCirclePaint = new Paint();
+        innerCirclePaint.setAntiAlias(true);
+        innerCirclePaint.setStyle(Paint.Style.STROKE);
+        innerCirclePaint.setStrokeWidth(2);
+        innerCirclePaint.setColor(Color.BLACK);
+
+        innerInnerCirclePaint = new Paint();
+        innerInnerCirclePaint.setAntiAlias(true);
+        innerInnerCirclePaint.setStyle(Paint.Style.STROKE);
+        innerInnerCirclePaint.setStrokeWidth(2);
+        innerInnerCirclePaint.setColor(Color.GRAY);
 
         rectanglePaint = new Paint();
         rectanglePaint.setAntiAlias(true);
         rectanglePaint.setStyle(Paint.Style.FILL);
         rectanglePaint.setStrokeWidth(10);
         rectanglePaint.setColor(Color.YELLOW);
+
     }
 
     public FaceDetectView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
@@ -164,8 +190,12 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void initData() {
-        radiu = CIRCLERADIU;
-        rectF = new RectF();
+        outSideGapAngle = 10;
+        innerGapAngle = 10;
+        outSideRadiu = CIRCLERADIU;
+        outSideCircleRectF = new RectF();
+        innerCircleRectF = new RectF();
+        innerInnerCircleRectF = new RectF();
         rectanglePath1 = new Path();
         rectanglePath2 = new Path();
         circleCenterPoint = new Point();
@@ -177,32 +207,32 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
         tanglePoint4 = new Point();
         tanglePoint5 = new Point();
         tanglePoint6 = new Point();
-        circleCenterPoint.x = (int) radiu * 3 / 2;
-        circleCenterPoint.y = (int) radiu * 3 / 2;
+        circleCenterPoint.x = (int) outSideRadiu * 3 / 2;
+        circleCenterPoint.y = (int) outSideRadiu * 3 / 2;
 
         initArcData();
 
 
         if (null == bcScaleAnimator1) {
-            bcScaleAnimator1 = ObjectAnimator.ofFloat(this, "radiu", 0f, 1.04f);
+            bcScaleAnimator1 = ObjectAnimator.ofFloat(this, "outSideRadiu", 0f, 1.04f);
             bcScaleAnimator1.setDuration(200);
             bcScaleAnimator1.setInterpolator(new LinearInterpolator());
         }
 
         if (null == bcScaleAnimator2) {
-            bcScaleAnimator2 = ObjectAnimator.ofFloat(this, "radiu", 1.04f, 1f);
+            bcScaleAnimator2 = ObjectAnimator.ofFloat(this, "outSideRadiu", 1.04f, 1f);
             bcScaleAnimator2.setDuration(66);
             bcScaleAnimator2.setInterpolator(new LinearInterpolator());
         }
 
         if (null == bcScaleAnimator3) {
-            bcScaleAnimator3 = ObjectAnimator.ofFloat(this, "radiu", 1f, 1.02f);
+            bcScaleAnimator3 = ObjectAnimator.ofFloat(this, "outSideRadiu", 1f, 1.02f);
             bcScaleAnimator3.setDuration(66);
             bcScaleAnimator3.setInterpolator(new LinearInterpolator());
         }
 
         if (null == bcScaleAnimator4) {
-            bcScaleAnimator4 = ObjectAnimator.ofFloat(this, "radiu", 1.02f, 1f);
+            bcScaleAnimator4 = ObjectAnimator.ofFloat(this, "outSideRadiu", 1.02f, 1f);
             bcScaleAnimator4.setDuration(66);
             bcScaleAnimator4.setInterpolator(new LinearInterpolator());
         }
@@ -217,7 +247,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
         }
 
         if (null == bcRotateAnimation) {
-            bcRotateAnimation = ObjectAnimator.ofInt(this, "startAngle", 0, 360);
+            bcRotateAnimation = ObjectAnimator.ofInt(this, "outSideCircleStarAngle", 0, 360);
             bcRotateAnimation.setDuration(866);
             bcRotateAnimation.setInterpolator(new LinearInterpolator());
         }
@@ -229,49 +259,76 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
             bcAnimatorSet1.playSequentially(animatorArrayList);
             bcAnimatorSet1.setStartDelay(800);
         }
+
+        if (null == innerRotateAnimation) {
+            innerRotateAnimation = ObjectAnimator.ofInt(this, "innerCircleStarAngle", 0, 360);
+            innerRotateAnimation.setDuration(866);
+            innerRotateAnimation.setInterpolator(new LinearInterpolator());
+        }
+
+        if(null == innerAnimatorSet1){
+            innerAnimatorSet1 = new AnimatorSet();
+            ArrayList<Animator> animatorArrayList = new ArrayList<Animator>();
+            animatorArrayList.add(innerRotateAnimation);
+            innerAnimatorSet1.playSequentially(animatorArrayList);
+            innerAnimatorSet1.setStartDelay(800);
+        }
     }
 
-
-    public void setStartAngle(int startAngle) {
-        this.startAngle = startAngle;
+    public void setInnerCircleStarAngle(int innerCircleStarAngle) {
+        this.innerCircleStarAngle = 360 - innerCircleStarAngle;
         draw();
     }
 
-    public void setRadiu(float radiu) {
-        this.radiu = CIRCLERADIU * radiu;
+    public void setOutSideCircleStarAngle(int outSideCircleStarAngle) {
+        this.outSideCircleStarAngle = outSideCircleStarAngle;
         draw();
     }
+
+    public void setOutSideRadiu(float outSideRadiu) {
+        this.outSideRadiu = CIRCLERADIU * outSideRadiu;
+        draw();
+    }
+
+
 
     private void initArcData() {
-        rectanglePoint1 = caculateRectanglePosition(circleCenterPoint, startAngle, radiu);
-        rectanglePoint2 = caculateRectanglePosition(circleCenterPoint, startAngle + 180, radiu);
+        innerRadiu = outSideRadiu * 0.7f;
+        innerInnerRadiu = outSideRadiu * 0.15f;
+        rectanglePoint1 = caculateRectanglePosition(circleCenterPoint, outSideCircleStarAngle, outSideRadiu);
+        rectanglePoint2 = caculateRectanglePosition(circleCenterPoint, outSideCircleStarAngle + 180, outSideRadiu);
 
-        tanglePoint1 = caculateRectanglePosition(rectanglePoint1, startAngle + 180, 50);
-        tanglePoint2 = caculateRectanglePosition(rectanglePoint1, startAngle + 120 + 180, 50);
-        tanglePoint3 = caculateRectanglePosition(rectanglePoint1, startAngle + 240 + 180, 50);
+        tanglePoint1 = caculateRectanglePosition(rectanglePoint1, outSideCircleStarAngle + 180, outSideRadiu * 0.1f);
+        tanglePoint2 = caculateRectanglePosition(rectanglePoint1, outSideCircleStarAngle + 120 + 180, outSideRadiu * 0.1f);
+        tanglePoint3 = caculateRectanglePosition(rectanglePoint1, outSideCircleStarAngle + 240 + 180, outSideRadiu * 0.1f);
         rectanglePath1.reset();
         rectanglePath1.moveTo(tanglePoint1.x, tanglePoint1.y);
         rectanglePath1.lineTo(tanglePoint2.x, tanglePoint2.y);
         rectanglePath1.lineTo(tanglePoint3.x, tanglePoint3.y);
         rectanglePath1.close();
 
-        tanglePoint4 = caculateRectanglePosition(rectanglePoint2, startAngle, 50);
-        tanglePoint5 = caculateRectanglePosition(rectanglePoint2, startAngle + 120, 50);
-        tanglePoint6 = caculateRectanglePosition(rectanglePoint2, startAngle + 240, 50);
+        tanglePoint4 = caculateRectanglePosition(rectanglePoint2, outSideCircleStarAngle, outSideRadiu * 0.1f);
+        tanglePoint5 = caculateRectanglePosition(rectanglePoint2, outSideCircleStarAngle + 120, outSideRadiu * 0.1f);
+        tanglePoint6 = caculateRectanglePosition(rectanglePoint2, outSideCircleStarAngle + 240, outSideRadiu * 0.1f);
         rectanglePath2.reset();
         rectanglePath2.moveTo(tanglePoint4.x, tanglePoint4.y);
         rectanglePath2.lineTo(tanglePoint5.x, tanglePoint5.y);
         rectanglePath2.lineTo(tanglePoint6.x, tanglePoint6.y);
         rectanglePath2.close();
 
-        rectF.set(-radiu + circleCenterPoint.x, -radiu + circleCenterPoint.y, radiu + circleCenterPoint.x, radiu + circleCenterPoint.y);
+        outSideCircleRectF.set(-outSideRadiu + circleCenterPoint.x, -outSideRadiu + circleCenterPoint.y, outSideRadiu + circleCenterPoint.x, outSideRadiu + circleCenterPoint.y);
+        innerCircleRectF.set(-innerRadiu + circleCenterPoint.x, -innerRadiu + circleCenterPoint.y, innerRadiu + circleCenterPoint.x, innerRadiu + circleCenterPoint.y);
+        innerInnerCircleRectF.set(-innerInnerRadiu + circleCenterPoint.x, -innerInnerRadiu + circleCenterPoint.y, innerInnerRadiu + circleCenterPoint.x, innerInnerRadiu + circleCenterPoint.y);
+
+
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
-        if (bcAnimatorSet != null && bcAnimatorSet1 != null) {
+        if (bcAnimatorSet != null && bcAnimatorSet1 != null&& innerAnimatorSet1 != null) {
             bcAnimatorSet.start();
             bcAnimatorSet1.start();
+            innerAnimatorSet1.start();
         }
     }
 
@@ -282,8 +339,10 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
 
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
-        if (bcRotateAnimation != null) {
-            bcRotateAnimation.end();
+        if (bcAnimatorSet != null && bcAnimatorSet1 != null&& innerAnimatorSet1 != null) {
+            bcAnimatorSet.end();
+            bcAnimatorSet1.end();
+            innerAnimatorSet1.end();
         }
     }
 
@@ -294,8 +353,8 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
                 canvas = mSurfaceHolder.lockCanvas();
                 if (canvas != null) {
                     canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-                    Log.e("TAG" , "radiu:" + radiu);
-                    Log.e("TAG" , "startAngle:" + startAngle);
+                    Log.e("TAG" , "outSideRadiu:" + outSideRadiu);
+                    Log.e("TAG" , "outSideCircleStarAngle:" + outSideCircleStarAngle);
                     initArcData();
                     drawArc(canvas);
                 }
@@ -311,13 +370,22 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void drawArc(Canvas canvas) {
-        canvas.drawArc(rectF, startAngle + 10, 160, false, circlePaint);
-        canvas.drawArc(rectF, startAngle + 160 + 30, 160, false, circlePaint);
-        canvas.drawPoint(rectanglePoint1.x, rectanglePoint1.y, rectanglePaint);
-        canvas.drawPoint(rectanglePoint2.x, rectanglePoint2.y, rectanglePaint);
+        canvas.drawArc(outSideCircleRectF, outSideCircleStarAngle + outSideGapAngle, 180 - outSideGapAngle * 2, false, outSideCirclePaint);
+        canvas.drawArc(outSideCircleRectF, outSideCircleStarAngle + 180 + outSideGapAngle, 180 - outSideGapAngle * 2, false, outSideCirclePaint);
+
+        //内圆
+        canvas.drawArc(innerCircleRectF, innerCircleStarAngle + innerGapAngle ,  120 - innerGapAngle * 2, false, innerCirclePaint);
+        //内圆
+        canvas.drawArc(innerCircleRectF, innerCircleStarAngle + 120 + innerGapAngle,  120 - innerGapAngle * 2, false, innerCirclePaint);
+        //内圆
+        canvas.drawArc(innerCircleRectF, innerCircleStarAngle + 240 + innerGapAngle,  120 - innerGapAngle * 2, false, innerCirclePaint);
+        //最里面圆
+        canvas.drawCircle(circleCenterPoint.x , circleCenterPoint.y , innerInnerRadiu , innerInnerCirclePaint);
+
+        canvas.drawPoint(circleCenterPoint.x , circleCenterPoint.y , innerInnerCirclePaint);
         canvas.drawPath(rectanglePath1, rectanglePaint);
         canvas.drawPath(rectanglePath2, rectanglePaint);
-        Log.e("drawArc", "drawArc: " + startAngle);
+        Log.e("drawArc", "drawArc: " + outSideCircleStarAngle);
     }
 
     /*
