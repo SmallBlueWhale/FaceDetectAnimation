@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -12,12 +13,17 @@ import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.RectF;
+import android.graphics.drawable.BitmapDrawable;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.animation.LinearInterpolator;
 
+import com.google.android.gms.vision.Frame;
+import com.google.android.gms.vision.face.Face;
+import com.google.android.gms.vision.face.FaceDetector;
 import com.hyx.whale.facedetectanimation.R;
 
 import java.util.ArrayList;
@@ -39,6 +45,14 @@ import java.util.ArrayList;
 * 4.逆时针转动
 * */
 public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callback, Animator.AnimatorListener {
+    private Context context;
+    /*
+        * 人脸识别相关定义类
+        * */
+    private Bitmap bitmap;
+    private FaceDetector faceDetector;
+    private SparseArray<Face> faceSparseArray;
+    private Frame frame;
     private float outSideRadiu;                                 //圆的半径
     private float innerRadiu;
     private float innerInnerRadiu;
@@ -120,9 +134,23 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
 
     public FaceDetectView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        this.context = context;
+//        initFaceDetectorData();
         initPaint();
         initView();
         initData();
+    }
+
+    private void initFaceDetectorData() {
+        faceDetector = new FaceDetector.Builder(context)
+            .setTrackingEnabled(false)
+            .setLandmarkType(FaceDetector.ALL_LANDMARKS)
+            .setClassificationType(FaceDetector.ALL_CLASSIFICATIONS).build();
+        bitmap = ((BitmapDrawable)context.getResources().getDrawable(R.mipmap.download)).getBitmap();
+        if(faceDetector.isOperational() && bitmap!=null){
+            frame = new Frame.Builder().setBitmap(bitmap).build();
+            faceSparseArray = faceDetector.detect(frame);
+        }
     }
 
 
@@ -479,6 +507,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
                     Log.e("TAG" , "outSideRadiu:" + outSideRadiu);
                     Log.e("TAG" , "outSideCircleStarAngle:" + outSideCircleStarAngle);
                     initArcData();
+//                    drawFaceDetectRect();
                     drawArc(canvas);
                 }
             }
@@ -489,6 +518,13 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
                 //结束之后销毁这个view
                 mSurfaceHolder.unlockCanvasAndPost(canvas);
             }
+        }
+    }
+
+    private void drawFaceDetectRect() {
+        for (int i = 0; i < faceSparseArray.size(); i++) {
+            Face face = faceSparseArray.valueAt(i);
+            canvas.drawRect(face.getPosition().x , face.getPosition().y , face.getPosition().x + face.getWidth() , face.getPosition().y + face.getHeight() , innerInnerCirclePaint);
         }
     }
 
