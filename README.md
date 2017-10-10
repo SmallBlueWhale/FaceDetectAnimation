@@ -1,5 +1,6 @@
 # FaceDetectAnimation
-仿手Q人脸识别动画
+仿手Q人脸识别动画以及人脸识别功能实现
+实现[手Q人脸识别动画实现详解效果](https://mp.weixin.qq.com/s/UTuq4yCtdL2G2lWElmP3-Q?utm_source=androidweekly.cn&utm_medium=website)
 
 # 效果图
 # ![image](https://github.com/SmallBlueWhale/FaceDetectAnimation/blob/whale/gif.gif?raw=true "效果图")
