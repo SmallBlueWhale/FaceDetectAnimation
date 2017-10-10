@@ -135,7 +135,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
     public FaceDetectView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         this.context = context;
-//        initFaceDetectorData();
+        initFaceDetectorData();
         initPaint();
         initView();
         initData();
@@ -507,7 +507,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
                     Log.e("TAG" , "outSideRadiu:" + outSideRadiu);
                     Log.e("TAG" , "outSideCircleStarAngle:" + outSideCircleStarAngle);
                     initArcData();
-//                    drawFaceDetectRect();
+                    drawFaceDetectRect();
                     drawArc(canvas);
                 }
             }
