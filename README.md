@@ -2,7 +2,7 @@
 仿手Q人脸识别动画
 
 # 效果图
-# ![image](https://github.com/SmallBlueWhale/FaceDetectAnimation/raw/master/gif.gif "效果图")
+# ![image](https://github.com/SmallBlueWhale/FaceDetectAnimation/master/gif.gif?raw=true "效果图")
 
 # 用法
 ## 1. 添加依赖
