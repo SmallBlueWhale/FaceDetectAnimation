@@ -5,6 +5,7 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -13,7 +14,6 @@ import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.RectF;
-import android.graphics.drawable.BitmapDrawable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -56,6 +56,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
     private float outSideRadiu;                                 //圆的半径
     private float innerRadiu;
     private float innerInnerRadiu;
+    private float xScale , yScale;                                        //x , y缩放的比例
 
     private int innerAlph;                                    //外圈透明度
     private int outSideAlph;                                    //外圈透明度
@@ -135,7 +136,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
     public FaceDetectView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         this.context = context;
-        initFaceDetectorData();
+//        initFaceDetectorData();
         initPaint();
         initView();
         initData();
@@ -146,7 +147,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
             .setTrackingEnabled(false)
             .setLandmarkType(FaceDetector.ALL_LANDMARKS)
             .setClassificationType(FaceDetector.ALL_CLASSIFICATIONS).build();
-        bitmap = ((BitmapDrawable)context.getResources().getDrawable(R.mipmap.download)).getBitmap();
+        bitmap = BitmapFactory.decodeResource(getResources() , R.mipmap.test);
         if(faceDetector.isOperational() && bitmap!=null){
             frame = new Frame.Builder().setBitmap(bitmap).build();
             faceSparseArray = faceDetector.detect(frame);
@@ -159,6 +160,10 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         //设置长宽
         setMeasuredDimension(getFaceDetectViewWidth(widthMeasureSpec), getFaceDetectViewHeight(heightMeasureSpec));
+        if(bitmap!= null) {
+            xScale = getMeasuredWidth() / bitmap.getWidth();
+            yScale = getMeasuredHeight() / bitmap.getHeight();
+        }
     }
 
 
@@ -236,7 +241,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void initData() {
-        setBackgroundResource(R.mipmap.download);
+        setBackgroundResource(R.mipmap.test);
         animatorArrayList = new ArrayList<Animator>();
         outSideGapAngle = 10;
         innerGapAngle = 10;
@@ -508,7 +513,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
                     Log.e("TAG" , "outSideRadiu:" + outSideRadiu);
                     Log.e("TAG" , "outSideCircleStarAngle:" + outSideCircleStarAngle);
                     initArcData();
-                    drawFaceDetectRect();
+//                    drawFaceDetectRect();
                     drawArc(canvas);
                 }
             }
@@ -525,7 +530,11 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
     private void drawFaceDetectRect() {
         for (int i = 0; i < faceSparseArray.size(); i++) {
             Face face = faceSparseArray.valueAt(i);
-            canvas.drawRect(face.getPosition().x , face.getPosition().y , face.getPosition().x + face.getWidth() , face.getPosition().y + face.getHeight() , innerInnerCirclePaint);
+            canvas.drawRect(face.getPosition().x * xScale
+                    , face.getPosition().y  * yScale
+                    , face.getPosition().x + face.getWidth()  * xScale
+                    , face.getPosition().y + face.getHeight() * yScale
+                    , rectanglePaint);
         }
     }
 
