@@ -236,6 +236,7 @@ public class FaceDetectView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void initData() {
+        setBackgroundResource(R.mipmap.download);
         animatorArrayList = new ArrayList<Animator>();
         outSideGapAngle = 10;
         innerGapAngle = 10;
